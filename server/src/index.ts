@@ -16,6 +16,30 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 app.use(cors());
 app.use(express.json());
 
+// ============ HEALTH CHECK ============
+
+// Root endpoint - welcome message
+app.get('/', (req: Request, res: Response) => {
+  res.json({
+    message: 'Watcher Monitoring Server',
+    status: 'running',
+    version: '1.0.0',
+    endpoints: {
+      'GET /': 'Welcome message',
+      'GET /health': 'Health check',
+      'POST /api/agents/register': 'Register a new agent',
+      'GET /api/dashboard/summary': 'Dashboard summary statistics',
+      'GET /api/dashboard/agents': 'List all agents with applications',
+    },
+    documentation: 'https://github.com/djmotor90/watcher',
+  });
+});
+
+// Health check endpoint
+app.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Types
 interface AgentRequest extends Request {
   agentId?: string;
