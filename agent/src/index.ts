@@ -33,8 +33,8 @@ interface ProcessMetrics {
 }
 
 class WatcherAgent {
-  private collectionInterval: NodeJS.Timer | null = null;
-  private heartbeatInterval: NodeJS.Timer | null = null;
+  private collectionInterval: ReturnType<typeof setInterval> | null = null;
+  private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private applications: Map<string, any> = new Map();
 
   async initialize() {

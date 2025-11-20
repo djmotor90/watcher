@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Activity, AlertCircle, CheckCircle, DownloadCloud, Plus } from 'lucide-react';
+import { Activity, DownloadCloud, Plus } from 'lucide-react';
 import AgentsList from './components/AgentsList';
 import DashboardSummary from './components/DashboardSummary';
-import MetricsChart from './components/MetricsChart';
 import DowntimeAlerts from './components/DowntimeAlerts';
 import AddAgentModal from './components/AddAgentModal';
 import './App.css';

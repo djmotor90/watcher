@@ -351,7 +351,7 @@ async function sendToClickup(downtime: any) {
     });
 
     if (response.ok) {
-      const data = await response.json();
+      const data: any = await response.json();
       await prisma.downtime.update({
         where: { id: downtime.id },
         data: { clickupTaskId: data.task.id },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Activity, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Server, Activity, AlertTriangle } from 'lucide-react';
 
 interface DashboardSummaryProps {
   summary: {
