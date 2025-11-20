@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Activity, DownloadCloud, Plus } from 'lucide-react';
+import { Activity, DownloadCloud, Plus, LogOut } from 'lucide-react';
 import AgentsList from './components/AgentsList';
 import DashboardSummary from './components/DashboardSummary';
 import DowntimeAlerts from './components/DowntimeAlerts';
 import AddAgentModal from './components/AddAgentModal';
+import LoginPage from './LoginPage';
 import './App.css';
 
 const API_BASE = 'http://localhost:3000/api';
@@ -14,28 +15,61 @@ function App() {
   const [summary, setSummary] = useState(null);
   const [showAddAgent, setShowAddAgent] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
+    checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchData();
+      const interval = setInterval(fetchData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated]);
+
+  const checkAuth = () => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      setIsAuthenticated(true);
+      setLoading(false);
+    } else {
+      setLoading(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
+      const token = localStorage.getItem('authToken');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      
       const [agentsRes, summaryRes] = await Promise.all([
-        axios.get(`${API_BASE}/dashboard/agents`),
-        axios.get(`${API_BASE}/dashboard/summary`),
+        axios.get(`${API_BASE}/dashboard/agents`, { headers }),
+        axios.get(`${API_BASE}/dashboard/summary`, { headers }),
       ]);
       setAgents(agentsRes.data);
       setSummary(summaryRes.data);
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
   };
 
-  return (
+  const handleLoginSuccess = (token: string) => {
+    localStorage.setItem('authToken', token);
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    setIsAuthenticated(false);
+    setAgents([]);
+    setSummary(null);
+    setUser(null);
+  };
+
+  return isAuthenticated ? (
     <div className="app">
       <header className="header">
         <div className="header-content">
@@ -43,13 +77,22 @@ function App() {
             <Activity size={32} className="logo" />
             <h1>Watcher Dashboard</h1>
           </div>
-          <button 
-            className="btn-primary"
-            onClick={() => setShowAddAgent(true)}
-          >
-            <Plus size={20} />
-            Add Agent
-          </button>
+          <div className="header-actions">
+            <button 
+              className="btn-primary"
+              onClick={() => setShowAddAgent(true)}
+            >
+              <Plus size={20} />
+              Add Agent
+            </button>
+            <button 
+              className="btn-secondary"
+              onClick={handleLogout}
+            >
+              <LogOut size={20} />
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -90,6 +133,8 @@ function App() {
         />
       )}
     </div>
+  ) : (
+    <LoginPage onLoginSuccess={handleLoginSuccess} />
   );
 }
 
