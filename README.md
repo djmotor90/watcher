@@ -66,59 +66,62 @@ watcher/
 ## Installation & Setup
 
 ### Prerequisites
-- Node.js 16+ and npm
-- PostgreSQL database
+- Node.js 18+ and npm
+- SQLite (included) or PostgreSQL database
 - ClickUp API token (optional, for alerting)
 
-### 1. Server Setup
+### Quick Start
+
+```bash
+# 1. Clone and install dependencies
+cd watcher
+npm install --workspaces
+
+# 2. Configure environment
+cp server/.env.example server/.env
+cp agent/.env.example agent/.env
+
+# 3. Setup database
+cd server && npm run prisma:migrate && cd ..
+
+# 4. Start services
+# Terminal 1 - Server
+cd server && npm start
+
+# Terminal 2 - Dashboard
+cd dashboard && npm start
+
+# Terminal 3 - Agent (on different machine)
+cd agent && npm start
+```
+
+Dashboard available at: `http://localhost:3001`
+
+### Detailed Setup
+
+#### 1. Server Setup
 
 ```bash
 cd server
 npm install
-# Copy .env.example to .env and update values
+
+# Configure environment variables
 cp .env.example .env
+# Edit .env with your settings:
+# - DATABASE_URL (SQLite by default)
+# - JWT_SECRET (for authentication)
+# - ClickUp settings (optional)
 
-# Update DATABASE_URL in .env
-# DATABASE_URL="postgresql://user:password@localhost:5432/watcher"
-
-# Run migrations
+# Initialize database
 npm run prisma:migrate
 
 # Start server
 npm run dev
 ```
 
-The server will run on `http://localhost:3000`
+The server runs on `http://localhost:3000`
 
-### 2. Agent Setup (on each server to monitor)
-
-```bash
-cd agent
-npm install
-# Copy .env.example to .env and fill in values
-cp .env.example .env
-
-# Fill in required fields:
-# WATCHER_SERVER_URL=http://your-server:3000
-# AGENT_ID=<from dashboard registration>
-# API_KEY=<from dashboard registration>
-# SECRET=<from dashboard registration>
-# AGENT_NAME=production-server-1
-# MONITOR_APPS=myapp:3001:node,api:3002:node
-
-# Start agent
-npm run dev
-```
-
-For production with systemd:
-
-```bash
-npm run build
-sudo cp dist/* /opt/watcher-agent/
-# Create systemd service file (see below)
-```
-
-### 3. Dashboard Setup
+#### 2. Dashboard Setup
 
 ```bash
 cd dashboard
@@ -126,15 +129,51 @@ npm install
 npm start
 ```
 
-The dashboard will run on `http://localhost:3000` (React dev server)
+Dashboard runs on `http://localhost:3001`
+
+Access with default test account or create a new one:
+- Email: `admin@example.com`
+- Password: `password123`
+
+#### 3. Agent Setup (on each server to monitor)
+
+```bash
+cd agent
+npm install
+
+# Configure environment
+cp .env.example .env
+# Required settings:
+# - WATCHER_SERVER_URL=http://your-server:3000
+# - AGENT_NAME=production-server-1
+# - MONITOR_APPS=myapp:3001:node,api:3002:node
+
+npm start
+```
+
+### Authentication
+
+The dashboard requires user login. See [AUTHENTICATION.md](./AUTHENTICATION.md) for complete details.
+
+**Create a user:**
+```bash
+curl -X POST http://localhost:3000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"password123","name":"User"}'
+```
 
 ## Configuration
 
 ### Server Environment Variables
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/watcher
-JWT_SECRET=your-super-secret-key
+# Database (SQLite by default, change for production)
+DATABASE_URL=file:./dev.db
+
+# Authentication
+JWT_SECRET=your-super-secret-key-change-in-production
+
+# Server
 PORT=3000
 NODE_ENV=development
 
@@ -147,15 +186,12 @@ CLICKUP_LIST_ID=your-list-id
 ### Agent Environment Variables
 
 ```env
+# Server connection
 WATCHER_SERVER_URL=http://localhost:3000
-AGENT_ID=unique-agent-id
-API_KEY=your-api-key
-SECRET=your-secret
-AGENT_NAME=production-server
+AGENT_NAME=production-server-1
 
-# Applications to monitor
-# Format: name:port:processName
-MONITOR_APPS=myapp:3001:node,api:3002:python
+# Applications to monitor (format: name:port:processName)
+MONITOR_APPS=web:3000:node,api:3001:python,cache:6379:redis
 ```
 
 ## API Endpoints
@@ -222,27 +258,15 @@ GET /api/dashboard/summary
 GET /api/dashboard/agents
 ```
 
-## Features
+## Key Features
 
-### Dashboard
-- **Real-time Agent Status**: View online/offline agents
-- **Application Monitoring**: Track status of all monitored applications
-- **Performance Metrics**: CPU, memory, response time tracking
-- **Downtime Alerts**: Active downtime incidents with severity levels
-- **Agent Registration**: Easy agent setup with unique credentials
-
-### Agent
-- **Process Monitoring**: Monitor running applications by process name
-- **Metrics Collection**: CPU, memory, uptime tracking
-- **Downtime Detection**: Automatic detection when processes stop
-- **Heartbeat System**: Regular communication with server
-- **Simple Installation**: Easy configuration via environment variables
-
-### Server
-- **RESTful API**: Complete API for dashboard and agents
-- **Database**: PostgreSQL with Prisma ORM
-- **ClickUp Integration**: Automatic task creation on downtime events
-- **Agent Management**: Registration, status tracking, security
+- **Secure Authentication**: JWT-based user authentication with bcrypt password hashing
+- **Real-time Dashboard**: Monitor all agents and applications from a web interface
+- **Agent Management**: Register and manage lightweight monitoring agents
+- **Performance Tracking**: CPU, memory, response time, and request metrics
+- **Downtime Alerts**: Automatic detection and notification of application failures
+- **ClickUp Integration**: Automatically create tasks for critical incidents
+- **RESTful API**: Complete API for dashboard and agent communication
 
 ## ClickUp Integration
 
@@ -263,6 +287,14 @@ When an application goes down, the system automatically creates a ClickUp task:
    CLICKUP_WORKSPACE_ID=xxxxx
    CLICKUP_LIST_ID=xxxxx
    ```
+
+## Documentation
+
+- [Authentication Guide](./AUTHENTICATION.md) - User login, signup, and API token usage
+- [API Reference](./API.md) - Complete API endpoint documentation
+- [Deployment Guide](./DEPLOYMENT.md) - Production deployment instructions
+- [Troubleshooting](./TROUBLESHOOTING.md) - Common issues and solutions
+- [Quick Reference](./QUICK_REFERENCE.md) - Quick commands and shortcuts
 
 ## Systemd Service Setup (Ubuntu)
 
