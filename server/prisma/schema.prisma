@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  name      String
+  role      String     @default("admin")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  
+  agents    Agent[]
+  
+  @@map("users")
+}
+
+model Agent {
+  id        String     @id @default(cuid())
+  name      String
+  apiKey    String     @unique
+  secret    String     @unique
+  status    String     @default("offline") // online, offline, error
+  lastSeen  DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  applications  Application[]
+  metrics       Metric[]
+  downtimes     Downtime[]
+  
+  @@index([userId])
+  @@map("agents")
+}
+
+model Application {
+  id        String     @id @default(cuid())
+  name      String
+  port      Int
+  processName String
+  url       String?
+  status    String     @default("unknown") // running, stopped, error, unknown
+  lastCheck DateTime?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  agentId   String
+  agent     Agent      @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  metrics   Metric[]
+  downtimes Downtime[]
+  
+  @@index([agentId])
+  @@map("applications")
+}
+
+model Metric {
+  id              String   @id @default(cuid())
+  cpu             Float    // percentage
+  memory          Float    // in MB
+  uptime          Float    // in seconds
+  responseTime    Float?   // in ms
+  requestCount    Int      @default(0)
+  errorCount      Int      @default(0)
+  timestamp       DateTime @default(now())
+  
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  @@index([agentId])
+  @@index([applicationId])
+  @@index([timestamp])
+  @@map("metrics")
+}
+
+model Downtime {
+  id              String   @id @default(cuid())
+  startTime       DateTime
+  endTime         DateTime?
+  reason          String?
+  severity        String   @default("medium") // low, medium, high, critical
+  resolved        Boolean  @default(false)
+  clickupTaskId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  applicationId   String
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  @@index([agentId])
+  @@index([applicationId])
+  @@index([startTime])
+  @@map("downtimes")
+}
+
+model ClickupLog {
+  id              String   @id @default(cuid())
+  taskId          String
+  applicationName String
+  agentName       String
+  message         String
+  success         Boolean
+  createdAt       DateTime @default(now())
+  
+  @@map("clickup_logs")
+}

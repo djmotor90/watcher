@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: watcher-db
+    environment:
+      POSTGRES_USER: watcher
+      POSTGRES_PASSWORD: watcher_password
+      POSTGRES_DB: watcher
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U watcher"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Uncomment to use with Docker
+  # server:
+  #   build: ./server
+  #   container_name: watcher-server
+  #   environment:
+  #     DATABASE_URL: postgresql://watcher:watcher_password@postgres:5432/watcher
+  #     JWT_SECRET: your-secret-key
+  #     PORT: 3000
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./server/src:/app/src
+
+  # agent:
+  #   build: ./agent
+  #   container_name: watcher-agent
+  #   environment:
+  #     WATCHER_SERVER_URL: http://server:3000
+  #     AGENT_NAME: docker-agent
+  #     MONITOR_APPS: sample:8080:node
+  #   depends_on:
+  #     - server
+  #   volumes:
+  #     - ./agent/src:/app/src
+
+volumes:
+  postgres_data:
